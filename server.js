@@ -1,49 +1,31 @@
+require('dotenv').config();
 const express = require('express');
-const sql = require('mssql');
 const cors = require('cors');
+const { createClient } = require('@supabase/supabase-js');
 
 const app = express();
 app.use(cors());
+app.use(express.json());
 
-// SQL Server Authentication config
-const config = {
-    user: 'testuser',                     // SQL login
-    password: 'Test@1234',                // SQL login password
-    server: 'DESKTOP-16S9TLR\\SQLEXPRESS', // instance name
-    database: 'PracticeDB',
-    options: {
-        encrypt: false,
-        enableArithAbort: true
-    },
-    pool: {
-        max: 10,
-        min: 0,
-        idleTimeoutMillis: 30000
-    }
-};
-
-// Global pool
-let pool;
-async function getPool() {
-    if (!pool) {
-        pool = await sql.connect(config);
-        console.log('SQL Pool created');
-    }
-    return pool;
-}
+// Supabase setup
+const supabaseUrl = 'https://blaphkwcgumzdylngfri.supabase.co';
+const supabaseKey = process.env.SUPABASE_KEY;
+const supabase = createClient(supabaseUrl, supabaseKey);
 
 // API endpoint
 app.get('/employees', async (req, res) => {
-    try {
-        const pool = await getPool();
-        const result = await pool.request().query('SELECT * FROM Employees');
-        res.json(result.recordset);
-    } catch (err) {
-        console.error('DB Error:', err);
-        res.status(500).send(err.message);
-    }
+  try {
+    const { data, error } = await supabase.from('employees').select('*');
+    console.log("Supabase Data:", data);
+    if (error) throw error;
+    res.json(data);
+  } catch (err) {
+    console.error('Supabase Error:', err);
+    res.status(500).send(err.message);
+  }
 });
 
+// Server
 app.listen(5000, '0.0.0.0', () => {
-  console.log("Server running on port 5000");
+  console.log('Server running on port 5000');
 });
